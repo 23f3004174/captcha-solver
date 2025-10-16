@@ -1,30 +1,27 @@
-# Overview
-This is a small, client-side web app that performs Optical Character Recognition (OCR) on images entirely in your browser using Tesseract.js. It allows you to load an image, apply helpful pre-processing (scale, threshold, invert), and extract text. The app also visualizes detected word regions.
+# CAPTCHA Generator & Verification (Ethical Demo)
 
-Important: This tool is intended for ethical, legitimate OCR tasks (e.g., digitizing documents you own). It is not intended for, and should not be used to bypass access-control mechanisms such as CAPTCHAs or other anti-bot challenges.
+## Overview
+This web app demonstrates how to generate and verify simple CAPTCHAs in the browser using HTML5 Canvas for image challenges and an accessible math alternative. It intentionally does not include any automated CAPTCHA breaking or “solver” functionality. Building or distributing tools to bypass third‑party CAPTCHA systems can be harmful and is not supported.
 
-# Setup
-No build steps required.
+What you’ll see:
+- Image CAPTCHA with randomized characters, rotation, noise, and interference lines.
+- Accessible alternative: a simple math question.
+- Client-side verification of the user’s input (pair with server-side checks in real deployments).
 
-- Option 1: Open index.html directly in a modern browser with internet access (to download OCR model files).
-- Option 2: Serve it locally (recommended for best compatibility):
-  - Python: `python -m http.server 8080` then open http://localhost:8080
-  - Node: `npx http-server -p 8080` then open http://localhost:8080
+## Setup
+- No build steps or dependencies.
+- Download the repository (or just the files) and open `index.html` in any modern browser.
 
-The app uses Tesseract.js via CDN. The OCR runs locally in your browser; no images are uploaded to any server.
+## Usage
+1. Open `index.html`.
+2. Choose your challenge type:
+   - Image CAPTCHA (default), or
+   - Accessible Math (toggle using the switch at the top).
+3. Enter the characters you see (image mode) or the result to the math question (accessible mode).
+4. Click Verify (or press Enter) to check your answer.
+5. Use Refresh to generate a new challenge. Use Peek to reveal the current answer for testing only.
 
-# Usage
-- Click “Choose Image” or drag & drop an image into the drop zone.
-- Adjust options:
-  - Scale: Upscales the image before OCR (higher can improve accuracy).
-  - Threshold: Binarizes the image (helpful for noisy or low-contrast text). Set to off (0) to disable.
-  - Invert: For light text on dark background images.
-- Click “Run OCR” to extract text.
-- The “OCR Regions” pane highlights recognized words (with reasonable confidence).
-- Copy results via the “Copy” button.
-
-Tips:
-- For best results, crop the image to the region of interest and ensure the text is reasonably sharp.
-- Try Scale between 1.8–2.4 and Threshold around 120–180 for many scanned images.
-
-Ethical use reminder: Do not use OCR to circumvent CAPTCHAs or other anti-bot systems.
+Notes:
+- This is a client-only demo; for production, add server-side generation and verification to prevent tampering.
+- Avoid exposing plaintext challenges in the DOM; render them onto a canvas or generate server-side images.
+- Consider rate limiting, rotating challenges, and additional bot mitigation strategies beyond CAPTCHAs.

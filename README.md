@@ -1,27 +1,40 @@
-# CAPTCHA Generator & Verification (Ethical Demo)
+# Simple CAPTCHA Solver (Educational Demo)
 
 ## Overview
-This web app demonstrates how to generate and verify simple CAPTCHAs in the browser using HTML5 Canvas for image challenges and an accessible math alternative. It intentionally does not include any automated CAPTCHA breaking or “solver” functionality. Building or distributing tools to bypass third‑party CAPTCHA systems can be harmful and is not supported.
+This is a browser-based, self-contained demo that generates very simple, local CAPTCHA images and attempts to solve them using naive computer vision techniques:
+- Binarization (thresholding)
+- Connected component analysis (to segment glyphs)
+- Template matching (with a limited font and rotation set)
 
-What you’ll see:
-- Image CAPTCHA with randomized characters, rotation, noise, and interference lines.
-- Accessible alternative: a simple math question.
-- Client-side verification of the user’s input (pair with server-side checks in real deployments).
+Important:
+- This app only solves the CAPTCHAs it generates itself. It is not intended for, nor effective at, solving real-world CAPTCHAs.
+- Use strictly for educational purposes to learn basic image processing concepts. Do not use this to bypass any third-party security or authentication mechanisms.
 
 ## Setup
-- No build steps or dependencies.
-- Download the repository (or just the files) and open `index.html` in any modern browser.
+- No build tools or servers required.
+- Open index.html in any modern browser.
 
 ## Usage
-1. Open `index.html`.
-2. Choose your challenge type:
-   - Image CAPTCHA (default), or
-   - Accessible Math (toggle using the switch at the top).
-3. Enter the characters you see (image mode) or the result to the math question (accessible mode).
-4. Click Verify (or press Enter) to check your answer.
-5. Use Refresh to generate a new challenge. Use Peek to reveal the current answer for testing only.
+- Click “New CAPTCHA” to generate a fresh challenge. You can change:
+  - Length: number of characters (4–6).
+  - Noise: low/medium/high background clutter.
+  - Rotations: “Limited set” (angles the solver knows) or “None”.
+- Manually solve:
+  - Type the characters you see in the input box and click “Verify”.
+- Auto-solve:
+  - Click “Auto Solve” to run the naive solver. The prediction appears on the right.
+  - The overlay highlights detected character bounding boxes.
+  - The thresholded (binarized) image is shown to visualize the first processing step.
+- Clear:
+  - Click “Clear” to reset the canvases and status.
 
-Notes:
-- This is a client-only demo; for production, add server-side generation and verification to prevent tampering.
-- Avoid exposing plaintext challenges in the DOM; render them onto a canvas or generate server-side images.
-- Consider rate limiting, rotating challenges, and additional bot mitigation strategies beyond CAPTCHAs.
+Tips:
+- The solver is intentionally simple. It works best with:
+  - Limited rotations
+  - Low to medium noise
+  - The default font
+- If the solver prediction doesn’t match, try lowering the noise or disabling rotations.
+
+## Notes
+- Everything runs locally in your browser; no data is sent anywhere.
+- This demo purposefully avoids supporting external uploads to reinforce safe, educational use only.

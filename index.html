@@ -1,389 +1,487 @@
-index.html
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <title>CAPTCHA Demo (Ethical Generator & Verifier)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Image Text OCR (Client-side)</title>
   <style>
-    :root {
-      color-scheme: light dark;
-      --bg: #0f172a;
-      --panel: #111827;
-      --muted: #6b7280;
-      --text: #e5e7eb;
-      --accent: #22c55e;
-      --accent-2: #3b82f6;
-      --border: #1f2937;
-      --warn: #f59e0b;
+    :root{
+      --bg:#0f172a;
+      --panel:#111827;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#60a5fa;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --border:#1f2937;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      background: linear-gradient(180deg, #0b1022, #0a0f1e 60%);
-      color: var(--text);
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      background:linear-gradient(180deg,#0b1022, #0f172a 30%, #0f172a);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
     }
-    .app {
-      max-width: 1100px; margin: 32px auto; padding: 24px;
-      background: rgba(17, 24, 39, 0.65);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      backdrop-filter: blur(6px);
+    .app{
+      width:100%;
+      max-width:860px;
+      background:rgba(17,24,39,0.8);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:0 20px 50px rgba(0,0,0,0.4);
+      overflow:hidden;
     }
-    h1 { margin: 0 0 8px; font-size: 1.6rem; }
-    .note {
-      margin: 0 0 18px; color: var(--muted); font-size: 0.95rem;
+    header{
+      padding:18px 22px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      gap:12px;
+      background:linear-gradient(180deg,rgba(96,165,250,0.08),transparent);
     }
-    .controls {
-      display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+    .badge{
+      background:rgba(96,165,250,0.15);
+      color:#bfdbfe;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid rgba(96,165,250,0.3);
     }
-    .file-btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: var(--accent-2); color: white; border-radius: 10px;
-      padding: 10px 14px; cursor: pointer; user-select: none; border: none;
-      box-shadow: 0 6px 16px rgba(59,130,246,0.35);
+    header h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:0.2px;
     }
-    .dropzone {
-      margin-top: 8px;
-      border: 2px dashed #334155;
-      background: rgba(2,6,23,0.5);
-      border-radius: 12px;
-      padding: 18px; text-align: center; color: #cbd5e1;
-      transition: border-color 120ms, background 120ms;
+    header p{
+      margin:0 0 0 auto;
+      font-size:12px;
+      color:var(--muted);
     }
-    .dropzone.drag { border-color: var(--accent-2); background: rgba(37,99,235,0.12); }
-    .options {
-      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
-      margin: 16px 0 8px;
+    main{
+      display:grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap:0;
     }
-    .options label { color: #cbd5e1; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px; }
-    input[type="range"] { width: 180px; }
-    #runBtn, #copyBtn {
-      background: var(--accent); color: #06130a; border: none; border-radius: 10px;
-      padding: 10px 14px; cursor: pointer; font-weight: 600;
-      box-shadow: 0 6px 16px rgba(34,197,94,0.35);
+    @media (max-width:920px){
+      main{grid-template-columns: 1fr}
     }
-    #runBtn:disabled {
-      opacity: 0.5; cursor: not-allowed; box-shadow: none;
+    .col{
+      padding:22px;
     }
-    .canvas-wrap {
-      display: grid; gap: 18px; grid-template-columns: 1fr; margin-top: 8px;
+    .panel{
+      background:rgba(2,6,23,0.5);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:18px;
     }
-    @media (min-width: 960px) {
-      .canvas-wrap { grid-template-columns: 1fr 1fr; }
+    .row{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+    .grow{flex:1}
+    .label{font-size:12px; color:var(--muted); margin-bottom:8px}
+    canvas{
+      width:100%;
+      max-width:420px;
+      height:auto;
+      aspect-ratio: 5 / 2;
+      display:block;
+      border-radius:10px;
+      border:1px dashed rgba(148,163,184,0.25);
+      background:radial-gradient(120% 120% at 0% 0%, rgba(96,165,250,0.08), transparent 40%),
+                 radial-gradient(120% 120% at 100% 100%, rgba(34,197,94,0.08), transparent 40%),
+                 #0b1220;
     }
-    .canvas-col { background: rgba(2,6,23,0.5); border: 1px solid #0b1220; border-radius: 12px; padding: 12px; }
-    .canvas-col h3 { margin: 2px 0 12px; font-size: 1.05rem; color: #e2e8f0; }
-    canvas { width: 100%; height: auto; border-radius: 10px; background: #0b1020; }
-    .canvas-stack { position: relative; width: 100%; }
-    .canvas-stack canvas { position: absolute; top: 0; left: 0; }
-    .progress {
-      margin-top: 12px; min-height: 20px; color: #cbd5e1; font-family: ui-monospace, Menlo, Consolas, monospace;
+    .hidden{display:none !important}
+    input[type="text"]{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background:#0b1220;
+      color:var(--text);
+      outline:2px solid transparent;
+      transition:border .15s, outline .15s;
     }
-    .output { margin-top: 16px; }
-    textarea {
-      width: 100%; min-height: 160px; resize: vertical; border-radius: 10px; border: 1px solid #0b1220;
-      background: #0a0f1f; color: #e5e7eb; padding: 12px; font-family: ui-monospace, Menlo, Consolas, monospace;
+    input[type="text"]:focus{
+      border-color:rgba(96,165,250,0.5);
+      outline-color:rgba(96,165,250,0.25);
     }
-    details { margin-top: 16px; }
-    summary { cursor: pointer; color: #cbd5e1; }
-    .warn { color: var(--warn); }
-    .small { font-size: 0.85rem; color: #9aa3b2; }
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background:#0c1220;
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      transition:transform .06s ease, background .15s, border-color .15s, color .15s;
+    }
+    button:hover{transform:translateY(-1px); border-color:#2a364a}
+    button:active{transform:translateY(0)}
+    .primary{
+      background:linear-gradient(180deg,#3b82f6,#2563eb);
+      border-color:#1d4ed8;
+    }
+    .primary:hover{filter:brightness(1.05)}
+    .ghost{
+      background:transparent;
+    }
+    .switch{
+      display:inline-flex; align-items:center; gap:10px; font-size:14px;
+      background:rgba(15,23,42,0.6);
+      border:1px solid var(--border);
+      padding:10px 12px; border-radius:12px;
+    }
+    .toggle{
+      width:46px; height:26px; border-radius:999px; background:#0b1220; border:1px solid var(--border);
+      position:relative; transition:background .2s, border-color .2s;
+    }
+    .knob{
+      width:20px; height:20px; background:#93c5fd; border-radius:50%;
+      position:absolute; top:50%; left:3px; transform:translateY(-50%);
+      transition:left .2s ease;
+      box-shadow:0 4px 10px rgba(147,197,253,0.35);
+    }
+    .on .toggle{background:#0e1a32; border-color:#22406d}
+    .on .knob{left:23px}
+    .msg{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:14px;
+      border:1px solid var(--border);
+      background:rgba(2,6,23,0.5);
+    }
+    .ok{border-color:rgba(34,197,94,0.35); background:rgba(34,197,94,0.06); color:#bbf7d0}
+    .err{border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.06); color:#fecaca}
+    .note{
+      font-size:12px; color:var(--muted);
+      background:rgba(96,165,250,0.08);
+      border:1px solid rgba(96,165,250,0.2);
+      padding:10px 12px; border-radius:10px;
+    }
+    ul{margin:8px 0 0 18px; padding:0; color:#cbd5e1}
+    li{margin:6px 0}
+    code{
+      background:#0b1220; padding:2px 6px; border-radius:6px; border:1px solid var(--border); color:#e2e8f0
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Image Text OCR (Client-side)</h1>
-    <p class="note">
-      Extract text from images you own, right in your browser. Please do not use this tool to bypass anti-bot or access-control systems.
-    </p>
+    <header>
+      <span class="badge">Ethical Demo</span>
+      <h1>CAPTCHA Generator & Verification</h1>
+      <p>Automated CAPTCHA breaking is not provided</p>
+    </header>
+    <main>
+      <div class="col">
+        <div class="panel" style="margin-bottom:16px">
+          <div class="row" style="justify-content:space-between; align-items:center">
+            <div class="row" style="gap:10px">
+              <div class="switch" id="modeSwitch">
+                <span>Image CAPTCHA</span>
+                <div class="toggle"><div class="knob"></div></div>
+                <span>Accessible Math</span>
+              </div>
+            </div>
+            <div class="row">
+              <button id="refreshBtn" class="ghost" title="Generate a new challenge">Refresh</button>
+              <button id="peekBtn" class="ghost" title="Show the answer you generated">Peek</button>
+            </div>
+          </div>
+        </div>
 
-    <div class="controls">
-      <label class="file-btn">
-        <input type="file" id="fileInput" accept="image/*" hidden />
-        Choose Image
-      </label>
-      <span class="small">or drag & drop an image below</span>
-    </div>
+        <div class="panel" style="margin-bottom:16px">
+          <div id="imageWrap">
+            <div class="label">Image challenge</div>
+            <canvas id="captchaCanvas" width="600" height="240" aria-label="CAPTCHA image"></canvas>
+          </div>
+          <div id="mathWrap" class="hidden">
+            <div class="label">Accessible challenge</div>
+            <div class="note" id="mathPrompt" role="status" aria-live="polite"></div>
+          </div>
 
-    <div id="dropzone" class="dropzone">Drop image here</div>
+          <div style="height:12px"></div>
+          <div class="row">
+            <div class="grow">
+              <div class="label">Type what you see (case-insensitive) or answer the question</div>
+              <input id="answerInput" type="text" autocomplete="off" placeholder="Enter answer here" />
+            </div>
+            <button id="verifyBtn" class="primary">Verify</button>
+          </div>
+          <div id="result" class="msg hidden"></div>
+        </div>
 
-    <div class="options">
-      <label>Scale
-        <input type="range" id="scale" min="1" max="3" step="0.1" value="1.6" />
-        <span id="scaleVal">1.6x</span>
-      </label>
-      <label>Threshold
-        <input type="range" id="threshold" min="0" max="255" step="1" value="0" />
-        <span id="thVal">off</span>
-      </label>
-      <label><input type="checkbox" id="invert" /> Invert</label>
-      <button id="runBtn" disabled>Run OCR</button>
-    </div>
-
-    <div class="canvas-wrap">
-      <div class="canvas-col">
-        <h3>Preview</h3>
-        <canvas id="previewCanvas" width="10" height="10" aria-label="Preview canvas"></canvas>
-      </div>
-      <div class="canvas-col">
-        <h3>OCR Regions</h3>
-        <div class="canvas-stack">
-          <canvas id="ocrCanvas" width="10" height="10" aria-label="OCR input canvas"></canvas>
-          <canvas id="overlayCanvas" width="10" height="10" aria-label="Overlay canvas"></canvas>
+        <div class="panel">
+          <div class="label">Why this app?</div>
+          <div class="note">
+            This demo shows how CAPTCHAs can be generated and verified to protect forms. It does not include automated CAPTCHA breaking.
+            Building or distributing tools that bypass third‑party CAPTCHA systems can be harmful and is not supported here.
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="progress" id="progress"></div>
-
-    <div class="output">
-      <h3>Extracted Text</h3>
-      <textarea id="output" placeholder="Recognized text will appear here"></textarea>
-      <div style="margin-top:8px; display:flex; gap:10px;">
-        <button id="copyBtn">Copy</button>
-        <span class="small">Tip: Improve accuracy by increasing Scale and enabling Threshold.</span>
-      </div>
-      <p class="small warn" style="margin-top:8px;">Ethical use reminder: Do not employ OCR to bypass CAPTCHA or other anti-bot challenges.</p>
-    </div>
-
-    <details>
-      <summary>Troubleshooting</summary>
-      <ul class="small">
-        <li>If OCR is inaccurate, try:
+      <div class="col">
+        <div class="panel">
+          <div class="label">What you can learn</div>
           <ul>
-            <li>Scale: 1.8–2.4x</li>
-            <li>Enable Threshold and adjust between 120–180</li>
-            <li>Toggle Invert for light-on-dark text</li>
-            <li>Crop the image externally to the region of interest</li>
+            <li>Generate a simple image CAPTCHA with noise, rotation, and random glyph placement.</li>
+            <li>Offer an accessible alternative (a simple math question) for users with visual impairments.</li>
+            <li>Verify user input on the client side (always pair with server-side verification in real apps).</li>
           </ul>
-        </li>
-        <li>Requires an internet connection to download OCR models (runs fully in your browser; no uploads to a server).</li>
-      </ul>
-    </details>
+          <div style="height:14px"></div>
+          <div class="label">Implementation notes</div>
+          <ul>
+            <li>Canvas is used to draw the challenge; the plaintext is never exposed in the DOM.</li>
+            <li>Characters avoid ambiguous glyphs like O/0 and I/1.</li>
+            <li>Refresh creates a new challenge; “Peek” reveals the current answer for testing only.</li>
+          </ul>
+          <div style="height:14px"></div>
+          <div class="label">Security reminders</div>
+          <ul>
+            <li>Always validate on the server to prevent tampering.</li>
+            <li>Rotate challenges and rate-limit attempts on sensitive endpoints.</li>
+            <li>Consider modern bot mitigation in addition to CAPTCHAs.</li>
+          </ul>
+        </div>
+      </div>
+    </main>
   </div>
 
-  <script src="https://unpkg.com/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <script>
-    const fileInput = document.getElementById('fileInput');
-    const dropzone = document.getElementById('dropzone');
-    const previewCanvas = document.getElementById('previewCanvas');
-    const ocrCanvas = document.getElementById('ocrCanvas');
-    const overlayCanvas = document.getElementById('overlayCanvas');
-    const runBtn = document.getElementById('runBtn');
-    const progressEl = document.getElementById('progress');
-    const output = document.getElementById('output');
-    const copyBtn = document.getElementById('copyBtn');
-    const scaleEl = document.getElementById('scale');
-    const scaleVal = document.getElementById('scaleVal');
-    const thEl = document.getElementById('threshold');
-    const thVal = document.getElementById('thVal');
-    const invertEl = document.getElementById('invert');
+    // Ethical scope: generator + verifier only (no automated CAPTCHA breaking).
+    const canvas = document.getElementById('captchaCanvas');
+    const ctx = canvas.getContext('2d');
+    const resultEl = document.getElementById('result');
+    const inputEl = document.getElementById('answerInput');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const verifyBtn = document.getElementById('verifyBtn');
+    const peekBtn = document.getElementById('peekBtn');
+    const modeSwitch = document.getElementById('modeSwitch');
+    const imageWrap = document.getElementById('imageWrap');
+    const mathWrap = document.getElementById('mathWrap');
+    const mathPrompt = document.getElementById('mathPrompt');
 
-    const pctx = previewCanvas.getContext('2d');
-    const octx = ocrCanvas.getContext('2d');
-    const ovx = overlayCanvas.getContext('2d');
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // removed: I, O, 0, 1
+    let currentText = '';
+    let currentMode = 'image'; // 'image' | 'math'
+    let mathAnswer = null;
 
-    let loadedImage = null;
+    function rand(min, max){ return Math.random()*(max-min)+min; }
+    function randi(min, max){ return Math.floor(rand(min, max+1)); }
+    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-    function setProgress(msg) {
-      progressEl.textContent = msg || '';
+    function generateCaptchaText(){
+      const len = randi(5,6);
+      let t = '';
+      for(let i=0;i<len;i++) t += alphabet[randi(0, alphabet.length-1)];
+      return t;
     }
 
-    function formatPct(n) {
-      return (Math.round((n || 0) * 1000) / 10) + '%';
-    }
+    function softNoiseBackground(w,h){
+      // gradient base
+      const g = ctx.createLinearGradient(0,0,w,h);
+      g.addColorStop(0, '#0b1220');
+      g.addColorStop(1, '#0a1020');
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,w,h);
 
-    function loadImageFromFile(file) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = (e) => reject(e);
-        const reader = new FileReader();
-        reader.onload = () => { img.src = reader.result; };
-        reader.onerror = (e) => reject(e);
-        reader.readAsDataURL(file);
-      });
-    }
+      // subtle blobs
+      for(let i=0;i<12;i++){
+        const x = rand(0,w), y=rand(0,h);
+        const r = rand(20, 120);
+        const grd = ctx.createRadialGradient(x,y,0,x,y,r);
+        const alpha = rand(0.02,0.06);
+        grd.addColorStop(0, `rgba(${randi(80,160)},${randi(120,200)},${randi(180,255)},${alpha})`);
+        grd.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(x,y,r,0,Math.PI*2);
+        ctx.fill();
+      }
 
-    function drawPreview(img) {
-      const maxW = 900;
-      const scale = Math.min(1, maxW / img.width);
-      const w = Math.max(1, Math.floor(img.width * scale));
-      const h = Math.max(1, Math.floor(img.height * scale));
-      previewCanvas.width = w;
-      previewCanvas.height = h;
-      pctx.clearRect(0, 0, w, h);
-      pctx.imageSmoothingEnabled = true;
-      pctx.imageSmoothingQuality = 'high';
-      pctx.drawImage(img, 0, 0, w, h);
-    }
-
-    function preprocessToOCRCanvas() {
-      if (!loadedImage) return;
-      const userScale = parseFloat(scaleEl.value || '1');
-      scaleVal.textContent = userScale.toFixed(1) + 'x';
-      const threshold = parseInt(thEl.value, 10);
-      thVal.textContent = threshold > 0 ? String(threshold) : 'off';
-
-      const srcW = loadedImage.width;
-      const srcH = loadedImage.height;
-      const w = Math.max(1, Math.floor(srcW * userScale));
-      const h = Math.max(1, Math.floor(srcH * userScale));
-
-      ocrCanvas.width = w;
-      ocrCanvas.height = h;
-      overlayCanvas.width = w;
-      overlayCanvas.height = h;
-
-      // Draw scaled image
-      octx.imageSmoothingEnabled = true;
-      octx.imageSmoothingQuality = 'high';
-      octx.drawImage(loadedImage, 0, 0, w, h);
-
-      // Grab pixels and apply grayscale / invert / threshold
-      let imgData = octx.getImageData(0, 0, w, h);
-      let data = imgData.data;
-      const invert = invertEl.checked;
-      const doThresh = threshold > 0;
-
-      for (let i = 0; i < data.length; i += 4) {
-        // Luminance
-        let r = data[i], g = data[i+1], b = data[i+2];
-        let y = 0.2126*r + 0.7152*g + 0.0722*b;
-        if (invert) y = 255 - y;
-        if (doThresh) {
-          const v = y >= threshold ? 255 : 0;
-          data[i] = data[i+1] = data[i+2] = v;
-        } else {
-          data[i] = data[i+1] = data[i+2] = y;
+      // noise lines
+      ctx.lineWidth = 1;
+      for(let i=0;i<8;i++){
+        ctx.strokeStyle = `rgba(148,163,184,${rand(0.15,0.35)})`;
+        ctx.beginPath();
+        const y = rand(0,h);
+        for(let x=0;x<=w;x+=8){
+          const ny = y + Math.sin((x+i*10)/rand(12,24))*rand(2,6);
+          if(x===0) ctx.moveTo(x,ny);
+          else ctx.lineTo(x,ny);
         }
-        // alpha stays
+        ctx.stroke();
       }
-      octx.putImageData(imgData, 0, 0);
 
-      // Clear overlay
-      ovx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-    }
-
-    async function runOCR() {
-      if (!loadedImage) return;
-      output.value = '';
-      setProgress('Initializing OCR...');
-      const start = performance.now();
-
-      try {
-        const { data, data: { text } } = await Tesseract.recognize(ocrCanvas, 'eng', {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              setProgress(`Recognizing: ${formatPct(m.progress)}`);
-            } else if (m.status) {
-              setProgress(`${m.status.replace(/_/g,' ')}${m.progress != null ? ' ' + formatPct(m.progress) : ''}`);
-            }
-          }
-        });
-
-        const ms = Math.round(performance.now() - start);
-        output.value = text.trim();
-        setProgress(`Done in ${ms} ms. Confidence ~${Math.round(data.confidence)}.`);
-
-        drawOverlayBoxes(data);
-      } catch (err) {
-        console.error(err);
-        setProgress('Error: ' + (err && err.message ? err.message : String(err)));
+      // salt-pepper dots
+      for(let i=0;i<300;i++){
+        const a = rand(0.06,0.18);
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.fillRect(randi(0,w), randi(0,h), 1, 1);
       }
     }
 
-    function drawOverlayBoxes(resultData) {
-      ovx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-      ovx.lineWidth = 2;
-      ovx.strokeStyle = 'rgba(59,130,246,0.85)';
-      ovx.fillStyle = 'rgba(59,130,246,0.15)';
+    function drawCaptcha(text){
+      const w = canvas.width, h = canvas.height;
+      ctx.save();
+      softNoiseBackground(w,h);
 
-      const words = (resultData.words || []).filter(w => (w.confidence || 0) >= 65);
-      for (const w of words) {
-        const b = w.bbox || w.bbox0 || w;
-        if (!b) continue;
-        const x = b.x0 || b.x || 0;
-        const y = b.y0 || b.y || 0;
-        const wdt = (b.x1 != null ? b.x1 - x : b.w || 0);
-        const hgt = (b.y1 != null ? b.y1 - y : b.h || 0);
-        ovx.beginPath();
-        ovx.rect(x, y, wdt, hgt);
-        ovx.fill();
-        ovx.stroke();
+      // draw characters
+      const baseY = h/2 + 24;
+      const cell = w / (text.length + 1);
+      for(let i=0;i<text.length;i++){
+        const ch = text[i];
+        const fontSize = randi(64, 96);
+        ctx.font = `700 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+        ctx.textBaseline = 'middle';
+        const hue = randi(190, 250);
+        ctx.fillStyle = `hsl(${hue} 85% ${randi(65,85)}%)`;
+        const x = cell*(i+1) + rand(-12, 12);
+        const y = baseY + rand(-12, 12);
+        const ang = rand(-0.35, 0.35);
+        ctx.shadowColor = `rgba(0,0,0,0.6)`;
+        ctx.shadowBlur = 4;
+        ctx.translate(x,y);
+        ctx.rotate(ang);
+        // wavey glyph path via stroke+fill
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = `rgba(2,6,23,0.6)`;
+        ctx.fillText(ch, 0, 0);
+        ctx.strokeText(ch, 0, 0);
+        ctx.rotate(-ang);
+        ctx.translate(-x,-y);
+      }
+
+      // overlay interference arcs
+      for(let i=0;i<5;i++){
+        ctx.beginPath();
+        ctx.lineWidth = rand(1.2, 2.2);
+        ctx.strokeStyle = `rgba(96,165,250,${rand(0.25,0.45)})`;
+        const cx = rand(0,w), cy=rand(0,h), r=rand(30,140);
+        ctx.arc(cx,cy,r, rand(0,Math.PI), rand(Math.PI, Math.PI*2), Math.random()>0.5);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function newImageCaptcha(){
+      currentMode = 'image';
+      currentText = generateCaptchaText();
+      imageWrap.classList.remove('hidden');
+      mathWrap.classList.add('hidden');
+      drawCaptcha(currentText);
+      setMsg();
+      inputEl.value = '';
+      inputEl.focus();
+    }
+
+    function newMathCaptcha(){
+      currentMode = 'math';
+      imageWrap.classList.add('hidden');
+      mathWrap.classList.remove('hidden');
+      const a = randi(10, 29);
+      const b = randi(2, 15);
+      const ops = ['+','-'];
+      const op = pick(ops);
+      let prompt, ans;
+      if(op === '+'){ prompt = `${a} + ${b}`; ans = a + b; }
+      else { prompt = `${a} − ${b}`; ans = a - b; }
+      mathAnswer = ans;
+      mathPrompt.textContent = `What is ${prompt}?`;
+      setMsg();
+      inputEl.value = '';
+      inputEl.focus();
+    }
+
+    function setMsg(text='', type=''){
+      resultEl.textContent = text;
+      resultEl.classList.toggle('hidden', !text);
+      resultEl.classList.remove('ok','err');
+      if(type === 'ok') resultEl.classList.add('ok');
+      if(type === 'err') resultEl.classList.add('err');
+    }
+
+    function verify(){
+      const val = (inputEl.value || '').trim();
+      if(!val){
+        setMsg('Please enter an answer.', 'err');
+        return;
+      }
+      if(currentMode === 'image'){
+        if(val.toUpperCase() === currentText){
+          setMsg('Success! You are verified as human for this demo.', 'ok');
+        } else {
+          setMsg('Incorrect. Please try again or refresh for a new challenge.', 'err');
+        }
+      } else {
+        if(Number(val) === Number(mathAnswer)){
+          setMsg('Correct! You are verified as human for this demo.', 'ok');
+        } else {
+          setMsg('Incorrect. Please try again or refresh for a new challenge.', 'err');
+        }
       }
     }
 
-    // Events
-    fileInput.addEventListener('change', async (e) => {
-      const f = e.target.files && e.target.files[0];
-      if (!f) return;
-      try {
-        setProgress('Loading image...');
-        loadedImage = await loadImageFromFile(f);
-        drawPreview(loadedImage);
-        preprocessToOCRCanvas();
-        runBtn.disabled = false;
-        setProgress('Image ready. Adjust options and Run OCR.');
-      } catch (err) {
-        console.error(err);
-        setProgress('Failed to load image.');
+    // Mode switch
+    let switchOn = false;
+    function updateSwitchVisual(){
+      modeSwitch.classList.toggle('on', switchOn);
+    }
+    modeSwitch.addEventListener('click', () => {
+      // toggle between image(false) and math(true)
+      switchOn = !switchOn;
+      updateSwitchVisual();
+      if(switchOn) newMathCaptcha(); else newImageCaptcha();
+    });
+
+    refreshBtn.addEventListener('click', () => {
+      if(currentMode === 'image') newImageCaptcha(); else newMathCaptcha();
+    });
+
+    verifyBtn.addEventListener('click', verify);
+    inputEl.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') verify();
+    });
+
+    peekBtn.addEventListener('click', () => {
+      if(currentMode === 'image'){
+        setMsg(`Peek (for testing): ${currentText}`, '');
+      } else {
+        setMsg(`Peek (for testing): ${mathAnswer}`, '');
       }
     });
 
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault(); dropzone.classList.add('drag');
-    });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
-    dropzone.addEventListener('drop', async (e) => {
-      e.preventDefault(); dropzone.classList.remove('drag');
-      const f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (!f) return;
-      try {
-        setProgress('Loading image...');
-        loadedImage = await loadImageFromFile(f);
-        drawPreview(loadedImage);
-        preprocessToOCRCanvas();
-        runBtn.disabled = false;
-        setProgress('Image ready. Adjust options and Run OCR.');
-      } catch (err) {
-        console.error(err);
-        setProgress('Failed to load image.');
+    // Init
+    updateSwitchVisual();
+    newImageCaptcha();
+
+    // Resize handling (redraw to fit DPR)
+    function resizeCanvasForDPR(){
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0); // scale drawing?
+      // We redraw using CSS pixel coordinates; adjust by dividing by dpr
+      ctx.setTransform(1,0,0,1,0,0);
+      // Draw at logical size by mapping: Use canvas.width/height in draw, but keep style ratio
+      // We'll just re-draw using intrinsic size since softNoiseBackground uses canvas.width/height.
+      if(currentMode==='image') drawCaptcha(currentText);
+    }
+    // Optional: keep simple to avoid blurriness across DPR changes
+    window.addEventListener('resize', () => {
+      if(currentMode==='image'){
+        // regenerate with same text for consistency
+        drawCaptcha(currentText);
       }
     });
-
-    scaleEl.addEventListener('input', () => {
-      scaleVal.textContent = parseFloat(scaleEl.value).toFixed(1) + 'x';
-      if (loadedImage) preprocessToOCRCanvas();
-    });
-    thEl.addEventListener('input', () => {
-      const v = parseInt(thEl.value, 10);
-      thVal.textContent = v > 0 ? String(v) : 'off';
-      if (loadedImage) preprocessToOCRCanvas();
-    });
-    invertEl.addEventListener('change', () => {
-      if (loadedImage) preprocessToOCRCanvas();
-    });
-
-    runBtn.addEventListener('click', runOCR);
-
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(output.value || '');
-        const prev = copyBtn.textContent;
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => copyBtn.textContent = prev, 1000);
-      } catch {
-        // Fallback
-        output.select();
-        document.execCommand('copy');
-      }
-    });
-
-    // Friendly defaults message
-    setProgress('Load an image to begin. Note: Network required once to fetch OCR models.');
   </script>
 </body>
 </html>

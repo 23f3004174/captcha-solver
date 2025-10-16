@@ -1,0 +1,389 @@
+index.html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Image Text OCR (Client-side)</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #6b7280;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --accent-2: #3b82f6;
+      --border: #1f2937;
+      --warn: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: linear-gradient(180deg, #0b1022, #0a0f1e 60%);
+      color: var(--text);
+    }
+    .app {
+      max-width: 1100px; margin: 32px auto; padding: 24px;
+      background: rgba(17, 24, 39, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(6px);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.6rem; }
+    .note {
+      margin: 0 0 18px; color: var(--muted); font-size: 0.95rem;
+    }
+    .controls {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .file-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--accent-2); color: white; border-radius: 10px;
+      padding: 10px 14px; cursor: pointer; user-select: none; border: none;
+      box-shadow: 0 6px 16px rgba(59,130,246,0.35);
+    }
+    .dropzone {
+      margin-top: 8px;
+      border: 2px dashed #334155;
+      background: rgba(2,6,23,0.5);
+      border-radius: 12px;
+      padding: 18px; text-align: center; color: #cbd5e1;
+      transition: border-color 120ms, background 120ms;
+    }
+    .dropzone.drag { border-color: var(--accent-2); background: rgba(37,99,235,0.12); }
+    .options {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+      margin: 16px 0 8px;
+    }
+    .options label { color: #cbd5e1; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px; }
+    input[type="range"] { width: 180px; }
+    #runBtn, #copyBtn {
+      background: var(--accent); color: #06130a; border: none; border-radius: 10px;
+      padding: 10px 14px; cursor: pointer; font-weight: 600;
+      box-shadow: 0 6px 16px rgba(34,197,94,0.35);
+    }
+    #runBtn:disabled {
+      opacity: 0.5; cursor: not-allowed; box-shadow: none;
+    }
+    .canvas-wrap {
+      display: grid; gap: 18px; grid-template-columns: 1fr; margin-top: 8px;
+    }
+    @media (min-width: 960px) {
+      .canvas-wrap { grid-template-columns: 1fr 1fr; }
+    }
+    .canvas-col { background: rgba(2,6,23,0.5); border: 1px solid #0b1220; border-radius: 12px; padding: 12px; }
+    .canvas-col h3 { margin: 2px 0 12px; font-size: 1.05rem; color: #e2e8f0; }
+    canvas { width: 100%; height: auto; border-radius: 10px; background: #0b1020; }
+    .canvas-stack { position: relative; width: 100%; }
+    .canvas-stack canvas { position: absolute; top: 0; left: 0; }
+    .progress {
+      margin-top: 12px; min-height: 20px; color: #cbd5e1; font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    .output { margin-top: 16px; }
+    textarea {
+      width: 100%; min-height: 160px; resize: vertical; border-radius: 10px; border: 1px solid #0b1220;
+      background: #0a0f1f; color: #e5e7eb; padding: 12px; font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+    details { margin-top: 16px; }
+    summary { cursor: pointer; color: #cbd5e1; }
+    .warn { color: var(--warn); }
+    .small { font-size: 0.85rem; color: #9aa3b2; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Image Text OCR (Client-side)</h1>
+    <p class="note">
+      Extract text from images you own, right in your browser. Please do not use this tool to bypass anti-bot or access-control systems.
+    </p>
+
+    <div class="controls">
+      <label class="file-btn">
+        <input type="file" id="fileInput" accept="image/*" hidden />
+        Choose Image
+      </label>
+      <span class="small">or drag & drop an image below</span>
+    </div>
+
+    <div id="dropzone" class="dropzone">Drop image here</div>
+
+    <div class="options">
+      <label>Scale
+        <input type="range" id="scale" min="1" max="3" step="0.1" value="1.6" />
+        <span id="scaleVal">1.6x</span>
+      </label>
+      <label>Threshold
+        <input type="range" id="threshold" min="0" max="255" step="1" value="0" />
+        <span id="thVal">off</span>
+      </label>
+      <label><input type="checkbox" id="invert" /> Invert</label>
+      <button id="runBtn" disabled>Run OCR</button>
+    </div>
+
+    <div class="canvas-wrap">
+      <div class="canvas-col">
+        <h3>Preview</h3>
+        <canvas id="previewCanvas" width="10" height="10" aria-label="Preview canvas"></canvas>
+      </div>
+      <div class="canvas-col">
+        <h3>OCR Regions</h3>
+        <div class="canvas-stack">
+          <canvas id="ocrCanvas" width="10" height="10" aria-label="OCR input canvas"></canvas>
+          <canvas id="overlayCanvas" width="10" height="10" aria-label="Overlay canvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress" id="progress"></div>
+
+    <div class="output">
+      <h3>Extracted Text</h3>
+      <textarea id="output" placeholder="Recognized text will appear here"></textarea>
+      <div style="margin-top:8px; display:flex; gap:10px;">
+        <button id="copyBtn">Copy</button>
+        <span class="small">Tip: Improve accuracy by increasing Scale and enabling Threshold.</span>
+      </div>
+      <p class="small warn" style="margin-top:8px;">Ethical use reminder: Do not employ OCR to bypass CAPTCHA or other anti-bot challenges.</p>
+    </div>
+
+    <details>
+      <summary>Troubleshooting</summary>
+      <ul class="small">
+        <li>If OCR is inaccurate, try:
+          <ul>
+            <li>Scale: 1.8–2.4x</li>
+            <li>Enable Threshold and adjust between 120–180</li>
+            <li>Toggle Invert for light-on-dark text</li>
+            <li>Crop the image externally to the region of interest</li>
+          </ul>
+        </li>
+        <li>Requires an internet connection to download OCR models (runs fully in your browser; no uploads to a server).</li>
+      </ul>
+    </details>
+  </div>
+
+  <script src="https://unpkg.com/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const ocrCanvas = document.getElementById('ocrCanvas');
+    const overlayCanvas = document.getElementById('overlayCanvas');
+    const runBtn = document.getElementById('runBtn');
+    const progressEl = document.getElementById('progress');
+    const output = document.getElementById('output');
+    const copyBtn = document.getElementById('copyBtn');
+    const scaleEl = document.getElementById('scale');
+    const scaleVal = document.getElementById('scaleVal');
+    const thEl = document.getElementById('threshold');
+    const thVal = document.getElementById('thVal');
+    const invertEl = document.getElementById('invert');
+
+    const pctx = previewCanvas.getContext('2d');
+    const octx = ocrCanvas.getContext('2d');
+    const ovx = overlayCanvas.getContext('2d');
+
+    let loadedImage = null;
+
+    function setProgress(msg) {
+      progressEl.textContent = msg || '';
+    }
+
+    function formatPct(n) {
+      return (Math.round((n || 0) * 1000) / 10) + '%';
+    }
+
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        const reader = new FileReader();
+        reader.onload = () => { img.src = reader.result; };
+        reader.onerror = (e) => reject(e);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function drawPreview(img) {
+      const maxW = 900;
+      const scale = Math.min(1, maxW / img.width);
+      const w = Math.max(1, Math.floor(img.width * scale));
+      const h = Math.max(1, Math.floor(img.height * scale));
+      previewCanvas.width = w;
+      previewCanvas.height = h;
+      pctx.clearRect(0, 0, w, h);
+      pctx.imageSmoothingEnabled = true;
+      pctx.imageSmoothingQuality = 'high';
+      pctx.drawImage(img, 0, 0, w, h);
+    }
+
+    function preprocessToOCRCanvas() {
+      if (!loadedImage) return;
+      const userScale = parseFloat(scaleEl.value || '1');
+      scaleVal.textContent = userScale.toFixed(1) + 'x';
+      const threshold = parseInt(thEl.value, 10);
+      thVal.textContent = threshold > 0 ? String(threshold) : 'off';
+
+      const srcW = loadedImage.width;
+      const srcH = loadedImage.height;
+      const w = Math.max(1, Math.floor(srcW * userScale));
+      const h = Math.max(1, Math.floor(srcH * userScale));
+
+      ocrCanvas.width = w;
+      ocrCanvas.height = h;
+      overlayCanvas.width = w;
+      overlayCanvas.height = h;
+
+      // Draw scaled image
+      octx.imageSmoothingEnabled = true;
+      octx.imageSmoothingQuality = 'high';
+      octx.drawImage(loadedImage, 0, 0, w, h);
+
+      // Grab pixels and apply grayscale / invert / threshold
+      let imgData = octx.getImageData(0, 0, w, h);
+      let data = imgData.data;
+      const invert = invertEl.checked;
+      const doThresh = threshold > 0;
+
+      for (let i = 0; i < data.length; i += 4) {
+        // Luminance
+        let r = data[i], g = data[i+1], b = data[i+2];
+        let y = 0.2126*r + 0.7152*g + 0.0722*b;
+        if (invert) y = 255 - y;
+        if (doThresh) {
+          const v = y >= threshold ? 255 : 0;
+          data[i] = data[i+1] = data[i+2] = v;
+        } else {
+          data[i] = data[i+1] = data[i+2] = y;
+        }
+        // alpha stays
+      }
+      octx.putImageData(imgData, 0, 0);
+
+      // Clear overlay
+      ovx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    }
+
+    async function runOCR() {
+      if (!loadedImage) return;
+      output.value = '';
+      setProgress('Initializing OCR...');
+      const start = performance.now();
+
+      try {
+        const { data, data: { text } } = await Tesseract.recognize(ocrCanvas, 'eng', {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setProgress(`Recognizing: ${formatPct(m.progress)}`);
+            } else if (m.status) {
+              setProgress(`${m.status.replace(/_/g,' ')}${m.progress != null ? ' ' + formatPct(m.progress) : ''}`);
+            }
+          }
+        });
+
+        const ms = Math.round(performance.now() - start);
+        output.value = text.trim();
+        setProgress(`Done in ${ms} ms. Confidence ~${Math.round(data.confidence)}.`);
+
+        drawOverlayBoxes(data);
+      } catch (err) {
+        console.error(err);
+        setProgress('Error: ' + (err && err.message ? err.message : String(err)));
+      }
+    }
+
+    function drawOverlayBoxes(resultData) {
+      ovx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      ovx.lineWidth = 2;
+      ovx.strokeStyle = 'rgba(59,130,246,0.85)';
+      ovx.fillStyle = 'rgba(59,130,246,0.15)';
+
+      const words = (resultData.words || []).filter(w => (w.confidence || 0) >= 65);
+      for (const w of words) {
+        const b = w.bbox || w.bbox0 || w;
+        if (!b) continue;
+        const x = b.x0 || b.x || 0;
+        const y = b.y0 || b.y || 0;
+        const wdt = (b.x1 != null ? b.x1 - x : b.w || 0);
+        const hgt = (b.y1 != null ? b.y1 - y : b.h || 0);
+        ovx.beginPath();
+        ovx.rect(x, y, wdt, hgt);
+        ovx.fill();
+        ovx.stroke();
+      }
+    }
+
+    // Events
+    fileInput.addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      try {
+        setProgress('Loading image...');
+        loadedImage = await loadImageFromFile(f);
+        drawPreview(loadedImage);
+        preprocessToOCRCanvas();
+        runBtn.disabled = false;
+        setProgress('Image ready. Adjust options and Run OCR.');
+      } catch (err) {
+        console.error(err);
+        setProgress('Failed to load image.');
+      }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault(); dropzone.classList.add('drag');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+    dropzone.addEventListener('drop', async (e) => {
+      e.preventDefault(); dropzone.classList.remove('drag');
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!f) return;
+      try {
+        setProgress('Loading image...');
+        loadedImage = await loadImageFromFile(f);
+        drawPreview(loadedImage);
+        preprocessToOCRCanvas();
+        runBtn.disabled = false;
+        setProgress('Image ready. Adjust options and Run OCR.');
+      } catch (err) {
+        console.error(err);
+        setProgress('Failed to load image.');
+      }
+    });
+
+    scaleEl.addEventListener('input', () => {
+      scaleVal.textContent = parseFloat(scaleEl.value).toFixed(1) + 'x';
+      if (loadedImage) preprocessToOCRCanvas();
+    });
+    thEl.addEventListener('input', () => {
+      const v = parseInt(thEl.value, 10);
+      thVal.textContent = v > 0 ? String(v) : 'off';
+      if (loadedImage) preprocessToOCRCanvas();
+    });
+    invertEl.addEventListener('change', () => {
+      if (loadedImage) preprocessToOCRCanvas();
+    });
+
+    runBtn.addEventListener('click', runOCR);
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(output.value || '');
+        const prev = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = prev, 1000);
+      } catch {
+        // Fallback
+        output.select();
+        document.execCommand('copy');
+      }
+    });
+
+    // Friendly defaults message
+    setProgress('Load an image to begin. Note: Network required once to fetch OCR models.');
+  </script>
+</body>
+</html>

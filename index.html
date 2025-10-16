@@ -1,487 +1,704 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>CAPTCHA Demo (Ethical Generator & Verifier)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{
-      --bg:#0f172a;
-      --panel:#111827;
-      --text:#e5e7eb;
-      --muted:#9ca3af;
-      --accent:#60a5fa;
-      --ok:#22c55e;
-      --warn:#f59e0b;
-      --err:#ef4444;
-      --border:#1f2937;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
-      background:linear-gradient(180deg,#0b1022, #0f172a 30%, #0f172a);
-      color:var(--text);
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-    }
-    .app{
-      width:100%;
-      max-width:860px;
-      background:rgba(17,24,39,0.8);
-      border:1px solid var(--border);
-      border-radius:16px;
-      box-shadow:0 20px 50px rgba(0,0,0,0.4);
-      overflow:hidden;
-    }
-    header{
-      padding:18px 22px;
-      border-bottom:1px solid var(--border);
-      display:flex;
-      align-items:center;
-      gap:12px;
-      background:linear-gradient(180deg,rgba(96,165,250,0.08),transparent);
-    }
-    .badge{
-      background:rgba(96,165,250,0.15);
-      color:#bfdbfe;
-      padding:4px 10px;
-      border-radius:999px;
-      font-size:12px;
-      border:1px solid rgba(96,165,250,0.3);
-    }
-    header h1{
-      margin:0;
-      font-size:18px;
-      letter-spacing:0.2px;
-    }
-    header p{
-      margin:0 0 0 auto;
-      font-size:12px;
-      color:var(--muted);
-    }
-    main{
-      display:grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap:0;
-    }
-    @media (max-width:920px){
-      main{grid-template-columns: 1fr}
-    }
-    .col{
-      padding:22px;
-    }
-    .panel{
-      background:rgba(2,6,23,0.5);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:18px;
-    }
-    .row{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
-    .grow{flex:1}
-    .label{font-size:12px; color:var(--muted); margin-bottom:8px}
-    canvas{
-      width:100%;
-      max-width:420px;
-      height:auto;
-      aspect-ratio: 5 / 2;
-      display:block;
-      border-radius:10px;
-      border:1px dashed rgba(148,163,184,0.25);
-      background:radial-gradient(120% 120% at 0% 0%, rgba(96,165,250,0.08), transparent 40%),
-                 radial-gradient(120% 120% at 100% 100%, rgba(34,197,94,0.08), transparent 40%),
-                 #0b1220;
-    }
-    .hidden{display:none !important}
-    input[type="text"]{
-      width:100%;
-      padding:12px 14px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      background:#0b1220;
-      color:var(--text);
-      outline:2px solid transparent;
-      transition:border .15s, outline .15s;
-    }
-    input[type="text"]:focus{
-      border-color:rgba(96,165,250,0.5);
-      outline-color:rgba(96,165,250,0.25);
-    }
-    button{
-      appearance:none;
-      border:1px solid var(--border);
-      background:#0c1220;
-      color:var(--text);
-      padding:10px 14px;
-      border-radius:10px;
-      cursor:pointer;
-      transition:transform .06s ease, background .15s, border-color .15s, color .15s;
-    }
-    button:hover{transform:translateY(-1px); border-color:#2a364a}
-    button:active{transform:translateY(0)}
-    .primary{
-      background:linear-gradient(180deg,#3b82f6,#2563eb);
-      border-color:#1d4ed8;
-    }
-    .primary:hover{filter:brightness(1.05)}
-    .ghost{
-      background:transparent;
-    }
-    .switch{
-      display:inline-flex; align-items:center; gap:10px; font-size:14px;
-      background:rgba(15,23,42,0.6);
-      border:1px solid var(--border);
-      padding:10px 12px; border-radius:12px;
-    }
-    .toggle{
-      width:46px; height:26px; border-radius:999px; background:#0b1220; border:1px solid var(--border);
-      position:relative; transition:background .2s, border-color .2s;
-    }
-    .knob{
-      width:20px; height:20px; background:#93c5fd; border-radius:50%;
-      position:absolute; top:50%; left:3px; transform:translateY(-50%);
-      transition:left .2s ease;
-      box-shadow:0 4px 10px rgba(147,197,253,0.35);
-    }
-    .on .toggle{background:#0e1a32; border-color:#22406d}
-    .on .knob{left:23px}
-    .msg{
-      margin-top:12px;
-      padding:10px 12px;
-      border-radius:10px;
-      font-size:14px;
-      border:1px solid var(--border);
-      background:rgba(2,6,23,0.5);
-    }
-    .ok{border-color:rgba(34,197,94,0.35); background:rgba(34,197,94,0.06); color:#bbf7d0}
-    .err{border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.06); color:#fecaca}
-    .note{
-      font-size:12px; color:var(--muted);
-      background:rgba(96,165,250,0.08);
-      border:1px solid rgba(96,165,250,0.2);
-      padding:10px 12px; border-radius:10px;
-    }
-    ul{margin:8px 0 0 18px; padding:0; color:#cbd5e1}
-    li{margin:6px 0}
-    code{
-      background:#0b1220; padding:2px 6px; border-radius:6px; border:1px solid var(--border); color:#e2e8f0
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simple CAPTCHA Solver (Educational Demo)</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #121a2b;
+    --panel2: #0e1626;
+    --text: #e7eefc;
+    --muted: #9fb1d8;
+    --accent: #6ab0ff;
+    --accent2: #8df;
+    --ok: #37d67a;
+    --warn: #ffcc00;
+    --err: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: radial-gradient(1000px 550px at 20% 5%, rgba(108,133,176,.25) 0%, rgba(108,133,176,0) 60%), var(--bg);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+    margin: 0;
+  }
+  a { color: var(--accent2); }
+  .wrap {
+    max-width: 1080px;
+    margin: 24px auto 80px;
+    padding: 0 16px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+  header .tag {
+    background: #13223b;
+    border: 1px solid #213457;
+    color: var(--muted);
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .notice {
+    background: #171f32;
+    border: 1px solid #243453;
+    color: var(--muted);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 16px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 16px;
+  }
+  .card {
+    background: linear-gradient(180deg, #0d1525 0%, #0b1322 100%);
+    border: 1px solid #1b2947;
+    border-radius: 14px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.03);
+    overflow: hidden;
+  }
+  .card h2 {
+    margin: 0;
+    padding: 14px 16px;
+    font-size: 15px;
+    border-bottom: 1px solid #1b2947;
+    color: #cfe0ff;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0));
+  }
+  .card .body {
+    padding: 14px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  canvas {
+    background: #f4f7ff;
+    border-radius: 10px;
+    border: 1px solid #d9e6ff;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.4), 0 12px 30px rgba(0,0,0,.08);
+    display: block;
+  }
+  .stack {
+    display: grid;
+    position: relative;
+  }
+  .stack > * {
+    grid-area: 1 / 1;
+  }
+  .controls button, .controls input, .controls select {
+    background: #0e182c;
+    border: 1px solid #24385e;
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: .2px;
+  }
+  .controls button:hover { border-color: #385b97; }
+  .controls button.primary {
+    background: linear-gradient(180deg, #2460ff, #1f54e3);
+    border: none;
+  }
+  .controls button.warn {
+    background: linear-gradient(180deg, #ff9f1a, #ff7e1a);
+    border: none;
+  }
+  .controls input[type="text"] {
+    min-width: 220px;
+    outline: none;
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .status {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #101a2e;
+    border: 1px solid #23365b;
+    font-size: 13px;
+  }
+  .status.ok { border-color: #1b7a4f; color: #89f5ba; background: rgba(55,214,122,0.08); }
+  .status.err { border-color: #823d3d; color: #ff9a9a; background: rgba(255,107,107,.08); }
+  .legend {
+    display: flex; gap: 10px; color: var(--muted); font-size: 12px; margin-top: 8px;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  footer {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .small {
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
 </head>
 <body>
-  <div class="app">
+  <div class="wrap">
     <header>
-      <span class="badge">Ethical Demo</span>
-      <h1>CAPTCHA Generator & Verification</h1>
-      <p>Automated CAPTCHA breaking is not provided</p>
+      <h1>Simple CAPTCHA Solver</h1>
+      <span class="tag">Round 1</span>
+      <span class="tag">Educational demo • Local-only</span>
     </header>
-    <main>
-      <div class="col">
-        <div class="panel" style="margin-bottom:16px">
-          <div class="row" style="justify-content:space-between; align-items:center">
-            <div class="row" style="gap:10px">
-              <div class="switch" id="modeSwitch">
-                <span>Image CAPTCHA</span>
-                <div class="toggle"><div class="knob"></div></div>
-                <span>Accessible Math</span>
-              </div>
-            </div>
-            <div class="row">
-              <button id="refreshBtn" class="ghost" title="Generate a new challenge">Refresh</button>
-              <button id="peekBtn" class="ghost" title="Show the answer you generated">Peek</button>
-            </div>
+    <div class="notice">
+      This app demonstrates how a very simple, naive solver can read extremely basic, self-generated image CAPTCHAs. It is for learning about image processing and should only be used with the CAPTCHAs generated by this page. Do not use this to bypass any third-party security or authentication mechanisms.
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Generate CAPTCHA</h2>
+        <div class="body">
+          <div class="row controls">
+            <button id="btnNew" class="primary">New CAPTCHA</button>
+            <label class="small">
+              Length
+              <select id="len">
+                <option>4</option>
+                <option selected>5</option>
+                <option>6</option>
+              </select>
+            </label>
+            <label class="small">
+              Noise
+              <select id="noise">
+                <option value="low" selected>Low</option>
+                <option value="med">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <label class="small">
+              Rotations
+              <select id="rotMode">
+                <option value="limited" selected>Limited set</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <button id="btnClear">Clear</button>
           </div>
+
+          <div class="stack" style="width: 320px; height: 120px;">
+            <canvas id="captcha" width="320" height="120"></canvas>
+            <canvas id="overlay" width="320" height="120" style="pointer-events:none;"></canvas>
+          </div>
+          <div class="legend">
+            <span><i class="chip" style="background:#ff6b6b"></i> Bounding boxes</span>
+          </div>
+
+          <div class="row" style="margin-top: 12px;">
+            <div class="status" id="gt">Ground truth: —</div>
+          </div>
+
+          <div class="row controls" style="margin-top: 8px;">
+            <input id="userInput" type="text" placeholder="Type the text you see…" autocomplete="off" />
+            <button id="btnCheck">Verify</button>
+            <button id="btnSolve" class="warn">Auto Solve</button>
+          </div>
+          <div id="feedback" class="status" style="margin-top: 10px;">Ready.</div>
         </div>
+      </section>
 
-        <div class="panel" style="margin-bottom:16px">
-          <div id="imageWrap">
-            <div class="label">Image challenge</div>
-            <canvas id="captchaCanvas" width="600" height="240" aria-label="CAPTCHA image"></canvas>
-          </div>
-          <div id="mathWrap" class="hidden">
-            <div class="label">Accessible challenge</div>
-            <div class="note" id="mathPrompt" role="status" aria-live="polite"></div>
-          </div>
-
-          <div style="height:12px"></div>
+      <section class="card">
+        <h2>Solver Visualization</h2>
+        <div class="body">
           <div class="row">
-            <div class="grow">
-              <div class="label">Type what you see (case-insensitive) or answer the question</div>
-              <input id="answerInput" type="text" autocomplete="off" placeholder="Enter answer here" />
+            <div>
+              <div class="small">Step 1: Threshold (binarize)</div>
+              <canvas id="thresh" width="320" height="120"></canvas>
             </div>
-            <button id="verifyBtn" class="primary">Verify</button>
           </div>
-          <div id="result" class="msg hidden"></div>
-        </div>
-
-        <div class="panel">
-          <div class="label">Why this app?</div>
-          <div class="note">
-            This demo shows how CAPTCHAs can be generated and verified to protect forms. It does not include automated CAPTCHA breaking.
-            Building or distributing tools that bypass third‑party CAPTCHA systems can be harmful and is not supported here.
+          <div class="row" style="margin-top: 8px;">
+            <div class="status" id="pred">Prediction: —</div>
+          </div>
+          <div class="hint">
+            Notes:
+            - The solver uses naive binarization, connected component analysis, and template matching.
+            - It only works reliably on the CAPTCHAs generated by this app (limited fonts/rotations/noise).
           </div>
         </div>
-      </div>
+      </section>
+    </div>
 
-      <div class="col">
-        <div class="panel">
-          <div class="label">What you can learn</div>
-          <ul>
-            <li>Generate a simple image CAPTCHA with noise, rotation, and random glyph placement.</li>
-            <li>Offer an accessible alternative (a simple math question) for users with visual impairments.</li>
-            <li>Verify user input on the client side (always pair with server-side verification in real apps).</li>
-          </ul>
-          <div style="height:14px"></div>
-          <div class="label">Implementation notes</div>
-          <ul>
-            <li>Canvas is used to draw the challenge; the plaintext is never exposed in the DOM.</li>
-            <li>Characters avoid ambiguous glyphs like O/0 and I/1.</li>
-            <li>Refresh creates a new challenge; “Peek” reveals the current answer for testing only.</li>
-          </ul>
-          <div style="height:14px"></div>
-          <div class="label">Security reminders</div>
-          <ul>
-            <li>Always validate on the server to prevent tampering.</li>
-            <li>Rotate challenges and rate-limit attempts on sensitive endpoints.</li>
-            <li>Consider modern bot mitigation in addition to CAPTCHAs.</li>
-          </ul>
-        </div>
-      </div>
-    </main>
+    <footer>
+      Built for educational purposes. No data leaves your browser.
+    </footer>
   </div>
 
-  <script>
-    // Ethical scope: generator + verifier only (no automated CAPTCHA breaking).
-    const canvas = document.getElementById('captchaCanvas');
-    const ctx = canvas.getContext('2d');
-    const resultEl = document.getElementById('result');
-    const inputEl = document.getElementById('answerInput');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const verifyBtn = document.getElementById('verifyBtn');
-    const peekBtn = document.getElementById('peekBtn');
-    const modeSwitch = document.getElementById('modeSwitch');
-    const imageWrap = document.getElementById('imageWrap');
-    const mathWrap = document.getElementById('mathWrap');
-    const mathPrompt = document.getElementById('mathPrompt');
+<script>
+  // Simple CAPTCHA Solver Demo (client-side only)
+  // This solver handles only the CAPTCHAs generated by this page.
 
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // removed: I, O, 0, 1
-    let currentText = '';
-    let currentMode = 'image'; // 'image' | 'math'
-    let mathAnswer = null;
+  // Allowed charset avoids ambiguous characters (I, O, 0, 1, etc.)
+  const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const ROTATIONS = [-15, -10, -5, 0, 5, 10, 15]; // limited set we template for
+  const FONT = "bold 44px Arial"; // for captcha render
+  const TEMPLATE_FONT = "bold 44px Arial"; // template render
+  const CANVAS_W = 320, CANVAS_H = 120;
+  const TPL_W = 40, TPL_H = 54; // template size
+  const MIN_COMPONENT_AREA = 60;
 
-    function rand(min, max){ return Math.random()*(max-min)+min; }
-    function randi(min, max){ return Math.floor(rand(min, max+1)); }
-    function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  const captcha = document.getElementById('captcha');
+  const overlay = document.getElementById('overlay');
+  const threshCanvas = document.getElementById('thresh');
+  const ctx = captcha.getContext('2d');
+  const octx = overlay.getContext('2d');
+  const tctx = threshCanvas.getContext('2d');
 
-    function generateCaptchaText(){
-      const len = randi(5,6);
-      let t = '';
-      for(let i=0;i<len;i++) t += alphabet[randi(0, alphabet.length-1)];
-      return t;
-    }
+  const btnNew = document.getElementById('btnNew');
+  const btnClear = document.getElementById('btnClear');
+  const btnCheck = document.getElementById('btnCheck');
+  const btnSolve = document.getElementById('btnSolve');
+  const input = document.getElementById('userInput');
+  const noiseSel = document.getElementById('noise');
+  const lenSel = document.getElementById('len');
+  const rotModeSel = document.getElementById('rotMode');
 
-    function softNoiseBackground(w,h){
-      // gradient base
-      const g = ctx.createLinearGradient(0,0,w,h);
-      g.addColorStop(0, '#0b1220');
-      g.addColorStop(1, '#0a1020');
-      ctx.fillStyle = g;
-      ctx.fillRect(0,0,w,h);
+  const gtEl = document.getElementById('gt');
+  const feedback = document.getElementById('feedback');
+  const predEl = document.getElementById('pred');
 
-      // subtle blobs
-      for(let i=0;i<12;i++){
-        const x = rand(0,w), y=rand(0,h);
-        const r = rand(20, 120);
-        const grd = ctx.createRadialGradient(x,y,0,x,y,r);
-        const alpha = rand(0.02,0.06);
-        grd.addColorStop(0, `rgba(${randi(80,160)},${randi(120,200)},${randi(180,255)},${alpha})`);
-        grd.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grd;
-        ctx.beginPath();
-        ctx.arc(x,y,r,0,Math.PI*2);
-        ctx.fill();
-      }
+  let groundTruth = "";
+  let lastAngles = [];
 
-      // noise lines
-      ctx.lineWidth = 1;
-      for(let i=0;i<8;i++){
-        ctx.strokeStyle = `rgba(148,163,184,${rand(0.15,0.35)})`;
-        ctx.beginPath();
-        const y = rand(0,h);
-        for(let x=0;x<=w;x+=8){
-          const ny = y + Math.sin((x+i*10)/rand(12,24))*rand(2,6);
-          if(x===0) ctx.moveTo(x,ny);
-          else ctx.lineTo(x,ny);
-        }
-        ctx.stroke();
-      }
+  // Template store: templates[char][angle] = Uint8Array binary image
+  const templates = new Map();
 
-      // salt-pepper dots
-      for(let i=0;i<300;i++){
-        const a = rand(0.06,0.18);
-        ctx.fillStyle = `rgba(255,255,255,${a})`;
-        ctx.fillRect(randi(0,w), randi(0,h), 1, 1);
-      }
-    }
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    function drawCaptcha(text){
-      const w = canvas.width, h = canvas.height;
+  function randInt(min, max) { return Math.floor(min + Math.random() * (max - min + 1)); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function setStatus(el, text, type = null) {
+    el.textContent = text;
+    el.classList.remove('ok', 'err');
+    if (type === 'ok') el.classList.add('ok');
+    if (type === 'err') el.classList.add('err');
+  }
+
+  function clearCanvas(c) {
+    const c2d = c.getContext('2d');
+    c2d.clearRect(0,0,c.width,c.height);
+  }
+
+  function drawBackground() {
+    ctx.save();
+    ctx.fillStyle = '#f4f7ff';
+    ctx.fillRect(0,0,CANVAS_W,CANVAS_H);
+    ctx.restore();
+  }
+
+  function drawNoise(level) {
+    const lines = level === 'high' ? 8 : (level === 'med' ? 5 : 3);
+    for (let i=0;i<lines;i++) {
       ctx.save();
-      softNoiseBackground(w,h);
-
-      // draw characters
-      const baseY = h/2 + 24;
-      const cell = w / (text.length + 1);
-      for(let i=0;i<text.length;i++){
-        const ch = text[i];
-        const fontSize = randi(64, 96);
-        ctx.font = `700 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
-        ctx.textBaseline = 'middle';
-        const hue = randi(190, 250);
-        ctx.fillStyle = `hsl(${hue} 85% ${randi(65,85)}%)`;
-        const x = cell*(i+1) + rand(-12, 12);
-        const y = baseY + rand(-12, 12);
-        const ang = rand(-0.35, 0.35);
-        ctx.shadowColor = `rgba(0,0,0,0.6)`;
-        ctx.shadowBlur = 4;
-        ctx.translate(x,y);
-        ctx.rotate(ang);
-        // wavey glyph path via stroke+fill
-        ctx.lineWidth = 2.2;
-        ctx.strokeStyle = `rgba(2,6,23,0.6)`;
-        ctx.fillText(ch, 0, 0);
-        ctx.strokeText(ch, 0, 0);
-        ctx.rotate(-ang);
-        ctx.translate(-x,-y);
-      }
-
-      // overlay interference arcs
-      for(let i=0;i<5;i++){
-        ctx.beginPath();
-        ctx.lineWidth = rand(1.2, 2.2);
-        ctx.strokeStyle = `rgba(96,165,250,${rand(0.25,0.45)})`;
-        const cx = rand(0,w), cy=rand(0,h), r=rand(30,140);
-        ctx.arc(cx,cy,r, rand(0,Math.PI), rand(Math.PI, Math.PI*2), Math.random()>0.5);
-        ctx.stroke();
-      }
-
+      ctx.strokeStyle = `rgba(${180+randInt(-10,15)}, ${200+randInt(-10,10)}, ${255}, ${0.45})`;
+      ctx.lineWidth = Math.random() < 0.4 ? 2 : 1;
+      ctx.beginPath();
+      const y1 = randInt(10, CANVAS_H-10);
+      const cp1x = randInt(0, CANVAS_W);
+      const cp1y = randInt(0, CANVAS_H);
+      const cp2x = randInt(0, CANVAS_W);
+      const cp2y = randInt(0, CANVAS_H);
+      const y2 = randInt(10, CANVAS_H-10);
+      ctx.moveTo(0, y1);
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, CANVAS_W, y2);
+      ctx.stroke();
       ctx.restore();
     }
 
-    function newImageCaptcha(){
-      currentMode = 'image';
-      currentText = generateCaptchaText();
-      imageWrap.classList.remove('hidden');
-      mathWrap.classList.add('hidden');
-      drawCaptcha(currentText);
-      setMsg();
-      inputEl.value = '';
-      inputEl.focus();
+    const dots = level === 'high' ? 180 : (level === 'med' ? 80 : 35);
+    for (let i=0;i<dots;i++) {
+      ctx.save();
+      const x = Math.random() * CANVAS_W;
+      const y = Math.random() * CANVAS_H;
+      const r = Math.random() * (level === 'high' ? 1.8 : 1.4);
+      ctx.fillStyle = `rgba(${150+randInt(-10,20)}, ${180+randInt(-15,15)}, ${240+randInt(-15,10)}, ${0.5})`;
+      ctx.beginPath();
+      ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function generateCaptcha() {
+    clearCanvas(captcha);
+    clearCanvas(overlay);
+    drawBackground();
+    drawNoise(noiseSel.value);
+
+    const length = parseInt(lenSel.value, 10);
+    const rotMode = rotModeSel.value;
+    groundTruth = "";
+    lastAngles = [];
+
+    const marginLR = 20;
+    const usableW = CANVAS_W - marginLR*2;
+    const spacing = usableW / (length + 1);
+    const baseY = Math.round(CANVAS_H/2 + 16);
+
+    ctx.fillStyle = '#1b2a4d';
+    ctx.strokeStyle = '#0c1426';
+    ctx.lineWidth = 1.5;
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    ctx.font = FONT;
+
+    for (let i = 0; i < length; i++) {
+      const ch = pick(ALPHABET);
+      const angle = rotMode === 'none' ? 0 : pick(ROTATIONS);
+      groundTruth += ch;
+      lastAngles.push(angle);
+
+      const x = Math.round(marginLR + spacing*(i+1) + randInt(-4,4));
+      const y = baseY + randInt(-6,6);
+
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(angle * Math.PI / 180);
+      ctx.fillText(ch, 0, 0);
+      // subtle stroke to thicken
+      ctx.strokeText(ch, 0, 0);
+      ctx.restore();
     }
 
-    function newMathCaptcha(){
-      currentMode = 'math';
-      imageWrap.classList.add('hidden');
-      mathWrap.classList.remove('hidden');
-      const a = randi(10, 29);
-      const b = randi(2, 15);
-      const ops = ['+','-'];
-      const op = pick(ops);
-      let prompt, ans;
-      if(op === '+'){ prompt = `${a} + ${b}`; ans = a + b; }
-      else { prompt = `${a} − ${b}`; ans = a - b; }
-      mathAnswer = ans;
-      mathPrompt.textContent = `What is ${prompt}?`;
-      setMsg();
-      inputEl.value = '';
-      inputEl.focus();
-    }
+    gtEl.textContent = `Ground truth: ${groundTruth}`;
+    setStatus(feedback, "New CAPTCHA generated.");
+    predEl.textContent = "Prediction: —";
+  }
 
-    function setMsg(text='', type=''){
-      resultEl.textContent = text;
-      resultEl.classList.toggle('hidden', !text);
-      resultEl.classList.remove('ok','err');
-      if(type === 'ok') resultEl.classList.add('ok');
-      if(type === 'err') resultEl.classList.add('err');
-    }
+  // Build character templates
+  function createTemplateFor(ch, angle) {
+    const c = document.createElement('canvas');
+    c.width = TPL_W; c.height = TPL_H;
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#ffffff';
+    cx.fillRect(0,0,c.width,c.height);
+    cx.fillStyle = '#000000';
+    cx.strokeStyle = '#000000';
+    cx.textBaseline = 'alphabetic';
+    cx.textAlign = 'center';
+    cx.font = TEMPLATE_FONT;
 
-    function verify(){
-      const val = (inputEl.value || '').trim();
-      if(!val){
-        setMsg('Please enter an answer.', 'err');
-        return;
+    cx.save();
+    cx.translate(c.width/2, c.height/2 + 14);
+    cx.rotate(angle * Math.PI / 180);
+    cx.fillText(ch, 0, 0);
+    cx.restore();
+
+    const bin = toBinary(c);
+    return bin;
+  }
+
+  function ensureTemplates() {
+    if (templates.size > 0) return;
+    for (const ch of ALPHABET) {
+      const angleSet = new Map();
+      for (const ang of ROTATIONS) {
+        angleSet.set(ang, createTemplateFor(ch, ang));
       }
-      if(currentMode === 'image'){
-        if(val.toUpperCase() === currentText){
-          setMsg('Success! You are verified as human for this demo.', 'ok');
-        } else {
-          setMsg('Incorrect. Please try again or refresh for a new challenge.', 'err');
+      templates.set(ch, angleSet);
+    }
+  }
+
+  function toBinary(canvasEl) {
+    const cx = canvasEl.getContext('2d');
+    const { width: w, height: h } = canvasEl;
+    const img = cx.getImageData(0,0,w,h);
+    const out = new Uint8Array(w*h);
+    // Auto threshold via mean luminance
+    let sum = 0;
+    for (let i=0;i<img.data.length;i+=4) {
+      const r=img.data[i], g=img.data[i+1], b=img.data[i+2];
+      const lum = (0.2126*r + 0.7152*g + 0.0722*b);
+      sum += lum;
+    }
+    const mean = sum / (w*h);
+    const t = mean * 0.9; // bias slightly darker
+
+    for (let y=0;y<h;y++) {
+      for (let x=0;x<w;x++) {
+        const idx = (y*w + x);
+        const i4 = idx*4;
+        const r=img.data[i4], g=img.data[i4+1], b=img.data[i4+2];
+        const lum = (0.2126*r + 0.7152*g + 0.0722*b);
+        // We want foreground as 1 (dark text), background 0
+        out[idx] = lum < t ? 1 : 0;
+      }
+    }
+    return { data: out, w, h };
+  }
+
+  function drawBinaryToCanvas(bin, canvasEl, fg='#000000', bg='#ffffff') {
+    const { data, w, h } = bin;
+    const cx = canvasEl.getContext('2d');
+    const img = cx.createImageData(w,h);
+    for (let i=0;i<data.length;i++) {
+      const v = data[i] ? 0 : 255; // foreground black
+      const j = i*4;
+      img.data[j] = v;
+      img.data[j+1] = v;
+      img.data[j+2] = v;
+      img.data[j+3] = 255;
+    }
+    cx.putImageData(img, 0, 0);
+  }
+
+  function binarizeCaptchaTo(threshCanvasEl) {
+    // Copy captcha to threshCanvas size
+    const tmp = document.createElement('canvas');
+    tmp.width = captcha.width; tmp.height = captcha.height;
+    const tcx = tmp.getContext('2d');
+    tcx.drawImage(captcha, 0, 0);
+    const bin = toBinary(tmp);
+    // Show on threshCanvas
+    drawBinaryToCanvas(bin, threshCanvasEl);
+    return bin;
+  }
+
+  function connectedComponents(bin) {
+    const { data, w, h } = bin;
+    const visited = new Uint8Array(w*h);
+    const comps = [];
+
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+
+    for (let y=0;y<h;y++) {
+      for (let x=0;x<w;x++) {
+        const idx = y*w + x;
+        if (data[idx] === 1 && !visited[idx]) {
+          // BFS
+          const queue = [idx];
+          visited[idx] = 1;
+          let minx = x, maxx = x, miny = y, maxy = y, area = 0;
+
+          while (queue.length) {
+            const cur = queue.pop();
+            const cy = Math.floor(cur / w), cx = cur % w;
+            area++;
+            if (cx < minx) minx = cx;
+            if (cx > maxx) maxx = cx;
+            if (cy < miny) miny = cy;
+            if (cy > maxy) maxy = cy;
+
+            for (const [dx,dy] of dirs) {
+              const nx = cx + dx, ny = cy + dy;
+              if (nx<0 || nx>=w || ny<0 || ny>=h) continue;
+              const nidx = ny*w + nx;
+              if (!visited[nidx] && data[nidx] === 1) {
+                visited[nidx] = 1;
+                queue.push(nidx);
+              }
+            }
+          }
+          if (area >= MIN_COMPONENT_AREA) {
+            comps.push({ x: minx, y: miny, w: maxx-minx+1, h: maxy-miny+1, area });
+          }
         }
-      } else {
-        if(Number(val) === Number(mathAnswer)){
-          setMsg('Correct! You are verified as human for this demo.', 'ok');
-        } else {
-          setMsg('Incorrect. Please try again or refresh for a new challenge.', 'err');
+      }
+    }
+    // Merge overlapping or very close boxes (rudimentary)
+    comps.sort((a,b)=>a.x-b.x);
+    const merged = [];
+    for (const c of comps) {
+      const last = merged[merged.length-1];
+      if (last) {
+        const overlapX = !(c.x > last.x+last.w+4 || last.x > c.x+c.w+4);
+        const overlapY = !(c.y > last.y+last.h || last.y > c.y+c.h);
+        if (overlapX && overlapY) {
+          const nx = Math.min(last.x, c.x);
+          const ny = Math.min(last.y, c.y);
+          const nx2 = Math.max(last.x+last.w, c.x+c.w);
+          const ny2 = Math.max(last.y+last.h, c.y+c.h);
+          last.x = nx; last.y = ny; last.w = nx2-nx; last.h = ny2-ny;
+          last.area += c.area;
+          continue;
         }
       }
+      merged.push({...c});
     }
+    return merged;
+  }
 
-    // Mode switch
-    let switchOn = false;
-    function updateSwitchVisual(){
-      modeSwitch.classList.toggle('on', switchOn);
-    }
-    modeSwitch.addEventListener('click', () => {
-      // toggle between image(false) and math(true)
-      switchOn = !switchOn;
-      updateSwitchVisual();
-      if(switchOn) newMathCaptcha(); else newImageCaptcha();
-    });
-
-    refreshBtn.addEventListener('click', () => {
-      if(currentMode === 'image') newImageCaptcha(); else newMathCaptcha();
-    });
-
-    verifyBtn.addEventListener('click', verify);
-    inputEl.addEventListener('keydown', (e) => {
-      if(e.key === 'Enter') verify();
-    });
-
-    peekBtn.addEventListener('click', () => {
-      if(currentMode === 'image'){
-        setMsg(`Peek (for testing): ${currentText}`, '');
-      } else {
-        setMsg(`Peek (for testing): ${mathAnswer}`, '');
+  function extractPatch(bin, box) {
+    const { data, w, h } = bin;
+    const out = new Uint8Array(box.w * box.h);
+    for (let yy=0; yy<box.h; yy++) {
+      for (let xx=0; xx<box.w; xx++) {
+        const srcIdx = (box.y + yy) * w + (box.x + xx);
+        const dstIdx = yy * box.w + xx;
+        out[dstIdx] = data[srcIdx];
       }
-    });
-
-    // Init
-    updateSwitchVisual();
-    newImageCaptcha();
-
-    // Resize handling (redraw to fit DPR)
-    function resizeCanvasForDPR(){
-      const dpr = Math.max(1, window.devicePixelRatio || 1);
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      ctx.setTransform(dpr,0,0,dpr,0,0); // scale drawing?
-      // We redraw using CSS pixel coordinates; adjust by dividing by dpr
-      ctx.setTransform(1,0,0,1,0,0);
-      // Draw at logical size by mapping: Use canvas.width/height in draw, but keep style ratio
-      // We'll just re-draw using intrinsic size since softNoiseBackground uses canvas.width/height.
-      if(currentMode==='image') drawCaptcha(currentText);
     }
-    // Optional: keep simple to avoid blurriness across DPR changes
-    window.addEventListener('resize', () => {
-      if(currentMode==='image'){
-        // regenerate with same text for consistency
-        drawCaptcha(currentText);
+    return { data: out, w: box.w, h: box.h };
+  }
+
+  function resizeBinary(src, tw, th) {
+    const { data, w, h } = src;
+    const out = new Uint8Array(tw*th);
+    for (let y=0;y<th;y++) {
+      const sy = Math.min(h-1, Math.round(y * h / th));
+      for (let x=0;x<tw;x++) {
+        const sx = Math.min(w-1, Math.round(x * w / tw));
+        out[y*tw + x] = data[sy*w + sx];
       }
-    });
-  </script>
+    }
+    return { data: out, w: tw, h: th };
+  }
+
+  function matchScore(a, b) {
+    // a and b are Uint8Array of same size; higher is better
+    let score = 0;
+    for (let i=0;i<a.data.length;i++) {
+      // reward matches, penalize mismatches
+      score += (a.data[i] === b.data[i]) ? 2 : -1;
+      // tiny reward for foreground matches
+      if (a.data[i] === 1 && b.data[i] === 1) score += 1;
+    }
+    return score;
+  }
+
+  function drawBoxes(boxes) {
+    octx.clearRect(0,0,overlay.width, overlay.height);
+    octx.save();
+    octx.strokeStyle = '#ff6b6b';
+    octx.lineWidth = 2;
+    for (const b of boxes) {
+      octx.strokeRect(b.x + 0.5, b.y + 0.5, b.w, b.h);
+    }
+    octx.restore();
+  }
+
+  function solve() {
+    const bin = binarizeCaptchaTo(threshCanvas);
+    const boxes = connectedComponents(bin).sort((a,b)=>a.x-b.x);
+    drawBoxes(boxes);
+
+    if (boxes.length === 0) {
+      setStatus(predEl, "Prediction: (no glyphs found)", 'err');
+      return "";
+    }
+
+    // Solve each box via template matching
+    const chars = [];
+    for (const box of boxes) {
+      const patch = extractPatch(bin, box);
+      // Normalize to template size with padding to preserve aspect ratio
+      const pad = 6;
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = TPL_W; tmpCanvas.height = TPL_H;
+      const tmpCtx = tmpCanvas.getContext('2d');
+      tmpCtx.fillStyle = '#ffffff';
+      tmpCtx.fillRect(0,0,TPL_W,TPL_H);
+
+      // Render patch into a tiny canvas then draw scaled via putImageData => tricky.
+      // We'll manually resize binary to TPL size minus padding then center.
+      const targetW = TPL_W - pad*2;
+      const targetH = TPL_H - pad*2;
+      const resized = resizeBinary(patch, targetW, targetH);
+      const centered = new Uint8Array(TPL_W*TPL_H);
+      // Place resized at center
+      const ox = Math.floor((TPL_W - targetW)/2);
+      const oy = Math.floor((TPL_H - targetH)/2);
+      for (let y=0;y<targetH;y++) {
+        for (let x=0;x<targetW;x++) {
+          const v = resized.data[y*targetW + x];
+          centered[(y+oy)*TPL_W + (x+ox)] = v;
+        }
+      }
+      const glyph = { data: centered, w: TPL_W, h: TPL_H };
+
+      // Compare to templates
+      let bestChar = '?';
+      let bestScore = -Infinity;
+      for (const [ch, angleSet] of templates.entries()) {
+        for (const [ang, tpl] of angleSet.entries()) {
+          const sc = matchScore(glyph, tpl);
+          if (sc > bestScore) {
+            bestScore = sc;
+            bestChar = ch;
+          }
+        }
+      }
+      chars.push(bestChar);
+    }
+
+    const pred = chars.join('');
+    setStatus(predEl, `Prediction: ${pred}`, 'ok');
+    return pred;
+  }
+
+  // Events
+  btnNew.addEventListener('click', () => {
+    generateCaptcha();
+    input.value = '';
+  });
+  btnClear.addEventListener('click', () => {
+    clearCanvas(captcha);
+    clearCanvas(overlay);
+    clearCanvas(threshCanvas);
+    groundTruth = "";
+    gtEl.textContent = "Ground truth: —";
+    setStatus(predEl, "Prediction: —");
+    setStatus(feedback, "Cleared.");
+    input.value = '';
+  });
+  btnCheck.addEventListener('click', () => {
+    if (!groundTruth) {
+      setStatus(feedback, "Please generate a CAPTCHA first.", 'err');
+      return;
+    }
+    const val = (input.value || "").trim().toUpperCase();
+    if (!val) {
+      setStatus(feedback, "Enter your guess to verify.", 'err');
+      return;
+    }
+    if (val === groundTruth) {
+      setStatus(feedback, "Correct! ✅", 'ok');
+    } else {
+      setStatus(feedback, `Incorrect. Expected ${groundTruth}, got ${val}.`, 'err');
+    }
+  });
+  btnSolve.addEventListener('click', () => {
+    if (!groundTruth) {
+      setStatus(feedback, "Please generate a CAPTCHA first.", 'err');
+      return;
+    }
+    const pred = solve();
+    if (!pred) return;
+    input.value = pred;
+    if (pred === groundTruth) {
+      setStatus(feedback, "Auto-solve matched the ground truth.", 'ok');
+    } else {
+      setStatus(feedback, "Auto-solve produced a different result. Try lowering noise or rotation.", 'err');
+    }
+  });
+
+  // Initialize
+  ensureTemplates();
+  generateCaptcha();
+</script>
 </body>
 </html>

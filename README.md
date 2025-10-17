@@ -6,11 +6,11 @@
 
 
 **Checks to meet:**
-App should expose /solve endpoint that accepts an image file.\nIt should return detected text as JSON.\nInclude setup instructions in README.md.
+
 
 ## Setup
-1. Open `index.html` in a browser.
-2. No build steps required.
+1. If backend exists: run `python app.py`
+2. Then open `index.html` in your browser.
 
 ## Notes
-This README was generated as a fallback (OpenAI did not return an explicit README).
+This README was generated automatically (fallback mode).
